@@ -1,5 +1,9 @@
 mod fetcher;
+mod view;
+
 use fetcher::HnFetcher;
+use view::BlockContainer;
+
 /*
     create an instance of a fetcher
         fetch_stories
@@ -14,11 +18,9 @@ use fetcher::HnFetcher;
 
 fn main() {
     let fetcher = HnFetcher::new(String::from(""));
+    let mut display = BlockContainer::new(1, 1);
+    let stories = fetcher.fetch_stories();
 
-    let scores = fetcher.fetch_stories();
-
-    for score in scores {
-        println!("{:#?}", score);
-    }
+    display.display_stories(stories);
 }
 

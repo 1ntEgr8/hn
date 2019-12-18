@@ -1,19 +1,15 @@
 use select::document::Document;
 use select::predicate::{Attr, Name};
 
-// forget about using the API for now because it is slow
-// work on scraping the webpage, displaying the content
-// then work on getting data from the API
-
 #[derive(Debug)]
-struct TitleData {
-    rank: i32,
-    title: String,
-    url: String,
+pub struct TitleData {
+    pub rank: i32,
+    pub title: String,
+    pub url: String,
 }
 
 #[derive(Debug)]
-struct SubtextData {
+pub struct SubtextData {
     score: i32,
     by: String,
     age: String,
@@ -21,8 +17,8 @@ struct SubtextData {
 
 #[derive(Debug)]
 pub struct Story {
-    data: TitleData,
-    sub: SubtextData,
+    pub data: TitleData,
+    pub sub: SubtextData,
 }
 
 pub struct HnFetcher {
@@ -66,7 +62,8 @@ impl HnFetcher {
             .unwrap()
             .parse()
             .unwrap();
-        let title = title_node.text();
+        // TODO: process the title to remove the awkward whitespace
+        let title = self.process_title(title_node.text());
         let url = title_node.attr("href").unwrap();
         TitleData {
             rank,
@@ -76,6 +73,7 @@ impl HnFetcher {
     }
 
     fn get_subtext_data(&self, node: select::node::Node<'_>) -> SubtextData {
+        // TODO: parse scores
         let score = node.find(Attr("class", "score")).next().unwrap().text();
         let by = node.find(Attr("class", "hnuser")).next().unwrap().text();
         let age = node
@@ -88,5 +86,10 @@ impl HnFetcher {
             .text();
 
         SubtextData { score: 1, by, age }
+    }
+
+    fn process_title(&self, title: String) -> String {
+        let it = title.chars();
+        String::new()
     }
 }
