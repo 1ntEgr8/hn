@@ -10,9 +10,9 @@ pub struct TitleData {
 
 #[derive(Debug)]
 pub struct SubtextData {
-    score: i32,
-    by: String,
-    age: String,
+    pub score: i32,
+    pub by: String,
+    pub age: String,
 }
 
 #[derive(Debug)]

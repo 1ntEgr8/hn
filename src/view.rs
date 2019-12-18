@@ -1,5 +1,6 @@
 use crate::fetcher::{Story, SubtextData, TitleData};
 use std::io::{stdin, stdout, Write};
+use std::process::Command;
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
@@ -8,22 +9,9 @@ use termion::{clear, color, cursor, style};
 // TODOS:
 //      * pagination
 //      * determine the number of urls you can display per page
-//      * styling the urls
 //      * support for different commands
 
-// bounds checking for move_up and move_down commands
 // pagination support
-// styling?
-
-// lets work on styling right now
-
-// print_title_data()
-// print_subtext_data()
-// calculate_height()
-
-/*
-    compute the maximum height of the terminal
-*/
 
 struct Block {
     data: String,
@@ -79,7 +67,7 @@ impl BlockContainer {
         self.clear_tty();
 
         for i in 0..5 {
-            let block = self.print_title_data(&stories[i].data);
+            let block = self.print_block(&stories[i]);
             self.cursor_y += block.height;
             self.blocks.push(block)
         }
@@ -101,27 +89,39 @@ impl BlockContainer {
                 Key::Char('k') => {
                     self.move_cursor_up();
                 }
+                Key::Char('\n') => {
+                    Command::new("open")
+                        .arg("https://www.twitter.com")
+                        .output();
+                }
                 _ => continue,
             }
         }
     }
 
-    fn print_title_data(&mut self, data: &TitleData) -> Block {
+    fn print_block(&mut self, story: &Story) -> Block {
         let output = format!(
-            "{goto}{bold}{blue}{rank}. {yellow}{data}",
-            goto = cursor::Goto(self.cursor_x, self.cursor_y),
+            "{goto1}{bold}{blue}{rank}. {yellow}{data}{goto2}{sub}",
+            goto1 = cursor::Goto(self.cursor_x, self.cursor_y),
             bold = style::Bold,
             blue = color::Fg(color::Blue),
-            rank = data.rank,
+            rank = story.data.rank,
             yellow = color::Fg(color::Yellow),
-            data = data.title
+            data = story.data.title,
+            goto2 = cursor::Goto(self.cursor_x + 3, self.cursor_y + 1),
+            sub = format!("{}{} points {}| {}by {} {}| {}", 
+                color::Fg(color::Rgb(0, 224, 157)),
+                story.sub.score, 
+                color::Fg(color::LightBlack),
+                color::Fg(color::Rgb(183, 183, 183)),
+                story.sub.by, 
+                color::Fg(color::LightBlack),
+                story.sub.age)
         );
-        let block = Block::new(output, self.cursor_x, self.cursor_y, 5);
+        let block = Block::new(output, self.cursor_x, self.cursor_y, 3);
         writeln!(self.stdout, "{}", block.data).unwrap();
         block
     }
-
-    fn print_subtext_data(&mut self) {}
 
     fn move_cursor_to(&mut self, x: u16, y: u16) {
         if x > self.dimensions.0 || y > self.dimensions.1 || x <= 0 || y <= 0 {
