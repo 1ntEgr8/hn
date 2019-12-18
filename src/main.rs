@@ -22,5 +22,6 @@ fn main() {
     let stories = fetcher.fetch_stories();
 
     display.display_stories(stories);
+    display.handle_input();
 }
 

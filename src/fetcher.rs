@@ -63,7 +63,7 @@ impl HnFetcher {
             .parse()
             .unwrap();
         // TODO: process the title to remove the awkward whitespace
-        let title = self.process_title(title_node.text());
+        let title = title_node.text();
         let url = title_node.attr("href").unwrap();
         TitleData {
             rank,
@@ -86,10 +86,5 @@ impl HnFetcher {
             .text();
 
         SubtextData { score: 1, by, age }
-    }
-
-    fn process_title(&self, title: String) -> String {
-        let it = title.chars();
-        String::new()
     }
 }
