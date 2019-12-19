@@ -92,7 +92,8 @@ impl BlockContainer {
                 Key::Char('\n') => {
                     Command::new("open")
                         .arg("https://www.twitter.com")
-                        .output();
+                        .output()
+                        .expect("Something went wrong with opening the page");
                 }
                 _ => continue,
             }

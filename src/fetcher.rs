@@ -1,3 +1,4 @@
+use std::error::Error;
 use select::document::Document;
 use select::predicate::{Attr, Name};
 
@@ -30,9 +31,15 @@ impl HnFetcher {
         HnFetcher { base_url }
     }
 
+    pub fn get_page(&self) -> Result<String, Box<dyn Error>> {
+        let body = reqwest::get(self.base_url.as_str())?.text()?;
+        Ok(body)
+    }
+
     pub fn fetch_stories(&self) -> Vec<Story> {
         let mut stories = Vec::new();
-        let document = Document::from(include_str!("hn.html"));
+        let document = Document::from(self.get_page().unwrap().as_str());
+        // let document = Document::from(include_str!("hn.html"));
         let title_nodes = document.find(Attr("class", "athing")).collect::<Vec<_>>();
         let subtext_nodes = document.find(Attr("class", "subtext")).collect::<Vec<_>>();
 
