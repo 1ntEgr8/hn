@@ -1,4 +1,4 @@
-use crate::fetcher::{Story, SubtextData, TitleData};
+use crate::fetcher::Story;
 use std::io::{stdin, stdout, Write};
 use std::process::Command;
 use termion::event::Key;
@@ -9,20 +9,17 @@ use termion::{clear, color, cursor, style};
 // TODOS:
 //      * pagination
 //      * determine the number of urls you can display per page
-//      * support for different commands
-
-// pagination support
+//      * integration with the Pocket API
 
 struct Block {
     data: String,
-    x: u16,
-    y: u16,
+    url: String, 
     height: u16,
 }
 
 impl Block {
-    fn new(data: String, x: u16, y: u16, height: u16) -> Block {
-        Block { data, x, y, height }
+    fn new(data: String, url: String, height: u16) -> Block {
+        Block { data, url, height }
     }
 }
 
@@ -66,7 +63,18 @@ impl BlockContainer {
     pub fn display_stories(&mut self, stories: Vec<Story>) {
         self.clear_tty();
 
-        for i in 0..5 {
+        writeln!(
+            self.stdout,
+            "{frame}{bold}{color}{title}",
+            frame = style::Framed,
+            bold = style::Bold,
+            color = color::Fg(color::Rgb(255, 132, 2)),
+            title = "╔══════════════╗\n\r   HACKERNEWS \n\r╚══════════════╝"
+        ).unwrap();
+
+        self.cursor_y += 5;
+
+        for i in 0..10 {
             let block = self.print_block(&stories[i]);
             self.cursor_y += block.height;
             self.blocks.push(block)
@@ -75,7 +83,7 @@ impl BlockContainer {
     }
 
     pub fn handle_input(&mut self) {
-        self.move_cursor_to(self.init_x, self.init_y);
+        self.move_cursor_to(self.init_x, self.init_y + 5);
         let stdin = stdin();
         for c in stdin.keys() {
             match c.unwrap() {
@@ -91,7 +99,7 @@ impl BlockContainer {
                 }
                 Key::Char('\n') => {
                     Command::new("open")
-                        .arg("https://www.twitter.com")
+                        .arg(self.blocks[self.current_block].url.as_str())
                         .output()
                         .expect("Something went wrong with opening the page");
                 }
@@ -110,16 +118,19 @@ impl BlockContainer {
             yellow = color::Fg(color::Yellow),
             data = story.data.title,
             goto2 = cursor::Goto(self.cursor_x + 3, self.cursor_y + 1),
-            sub = format!("{}{} points {}| {}by {} {}| {}", 
+            sub = format!(
+                "{}{} points {}| {}by {} {}| {}",
                 color::Fg(color::Rgb(0, 224, 157)),
-                story.sub.score, 
+                story.sub.score,
                 color::Fg(color::LightBlack),
                 color::Fg(color::Rgb(183, 183, 183)),
-                story.sub.by, 
+                story.sub.by,
                 color::Fg(color::LightBlack),
-                story.sub.age)
+                story.sub.age
+            )
         );
-        let block = Block::new(output, self.cursor_x, self.cursor_y, 3);
+        let url = story.data.url.clone();
+        let block = Block::new(output, url, 3);
         writeln!(self.stdout, "{}", block.data).unwrap();
         block
     }
