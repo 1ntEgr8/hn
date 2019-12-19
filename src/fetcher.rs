@@ -11,7 +11,7 @@ pub struct TitleData {
 
 #[derive(Debug)]
 pub struct SubtextData {
-    pub score: i32,
+    pub score: String,
     pub by: String,
     pub age: String,
 }
@@ -38,7 +38,7 @@ impl HnFetcher {
 
     pub fn fetch_stories(&self) -> Vec<Story> {
         let mut stories = Vec::new();
-        let document = Document::from(self.get_page().unwrap().as_str());
+        let document = Document::from(self.get_page().expect("Could not fetch data from hackernews").as_str());
         // let document = Document::from(include_str!("hn.html"));
         let title_nodes = document.find(Attr("class", "athing")).collect::<Vec<_>>();
         let subtext_nodes = document.find(Attr("class", "subtext")).collect::<Vec<_>>();
@@ -81,8 +81,15 @@ impl HnFetcher {
 
     fn get_subtext_data(&self, node: select::node::Node<'_>) -> SubtextData {
         // TODO: parse scores
-        let score = node.find(Attr("class", "score")).next().unwrap().text();
-        let by = node.find(Attr("class", "hnuser")).next().unwrap().text();
+        println!("{:?}\n\r\n\r===========", node);
+        let mut score = String::new();
+        let mut by = String::new();
+        if let Some(score_res) = node.find(Attr("class", "score")).next() {
+            score = score_res.text();
+        }
+        if let Some(by_res) = node.find(Attr("class", "hnuser")).next() {
+            by = by_res.text();
+        }
         let age = node
             .find(Attr("class", "age"))
             .next()
@@ -92,6 +99,6 @@ impl HnFetcher {
             .unwrap()
             .text();
 
-        SubtextData { score: 1, by, age }
+        SubtextData { score, by, age }
     }
 }

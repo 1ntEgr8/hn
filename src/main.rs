@@ -9,7 +9,6 @@ fn main() {
     let mut display = BlockContainer::new(1, 1);
     let stories = fetcher.fetch_stories();
 
-    display.display_stories(stories);
-    display.handle_input();
+    display.init_display(stories);
 }
 
