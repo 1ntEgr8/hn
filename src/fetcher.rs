@@ -81,7 +81,6 @@ impl HnFetcher {
 
     fn get_subtext_data(&self, node: select::node::Node<'_>) -> SubtextData {
         // TODO: parse scores
-        println!("{:?}\n\r\n\r===========", node);
         let mut score = String::new();
         let mut by = String::new();
         if let Some(score_res) = node.find(Attr("class", "score")).next() {
