@@ -128,10 +128,10 @@ impl BlockContainer {
                     self.clear_tty();
                     break;
                 }
-                Key::Char('j') => {
+                Key::Char('j') | Key::Down => {
                     self.move_cursor_down();
                 }
-                Key::Char('k') => {
+                Key::Char('k') | Key::Up => {
                     self.move_cursor_up();
                 }
                 Key::Char('\n') => {

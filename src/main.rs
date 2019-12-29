@@ -11,4 +11,3 @@ fn main() {
 
     display.init_display(stories);
 }
-
