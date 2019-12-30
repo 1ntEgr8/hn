@@ -1,10 +1,9 @@
 mod app;
 mod fetcher;
 mod view;
-mod actions;
 
 use app::App;
-use actions::*;
+use view::*;
 use std::io::stdout;
 use termion::raw::IntoRawMode;
 
@@ -16,7 +15,7 @@ fn main() {
     let mut app = App::init(); // initializing app
 
     display(stdout, &app);
-    processKeyPress(stdout, &mut app);
+    process_key_press(stdout, &mut app);
 }
 
 fn enter_raw_mode() -> RawTerminal {
