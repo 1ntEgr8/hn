@@ -7,19 +7,6 @@ use termion::raw::IntoRawMode;
 use termion::{clear, color, cursor, style};
 
 /*
-    ViewConfig
-
-        Should be responsible for handling display only!!
-        
-        There should be another struct that stores 
-            the state of 
-                blocks
-                cursor
-            ViewConfig should take in the state, and display that
-            shouldnt be modifying blocks
-*/
-
-/*
     YAYYY
     we are going to be using a database to store information
 
