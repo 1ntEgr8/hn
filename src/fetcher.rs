@@ -20,6 +20,8 @@ pub struct SubtextData {
 pub struct Story {
     pub data: TitleData,
     pub sub: SubtextData,
+    pub is_visited: bool,
+    pub is_saved: bool,
 }
 
 pub struct HnFetcher {
@@ -50,6 +52,8 @@ impl HnFetcher {
                 stories.push(Story {
                     data: self.get_title_data(title_nodes[i]),
                     sub: self.get_subtext_data(subtext_nodes[i]),
+                    is_visited: false,
+                    is_saved: false
                 });
             }
         } else {

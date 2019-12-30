@@ -6,6 +6,84 @@ use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use termion::{clear, color, cursor, style};
 
+/*
+    ViewConfig
+
+        Should be responsible for handling display only!!
+        
+        There should be another struct that stores 
+            the state of 
+                blocks
+                cursor
+            ViewConfig should take in the state, and display that
+            shouldnt be modifying blocks
+*/
+
+/*
+    YAYYY
+    we are going to be using a database to store information
+
+    id -> i32
+    title -> story title
+    url -> url of the story
+    time_stamp -> refer documentation
+    is_visited -> bool
+
+    implementing save story feature
+        * create a separate file (if it doesnt exist)
+            that stores a list of saved stories
+            * basically store all meta data that you need
+        * append stories, have flags on whether visited or not
+        * a story is visited if
+            * the user presses enter
+        * a story is saved if
+            * the user presses s
+        
+        If a story is visited
+            * muted color, with green check emoji
+        If a story is saved
+            * emoji for saved, and no bolding
+*/
+
+/*
+    Lifecyle of the application
+    
+        * startup
+            * load stories
+                * validate stories in database
+                * style based on response
+            * upon interaction
+                * add to database
+                    * set flag is_visited to true if enter
+                    * false if saved
+
+    Each View consists of pages
+        Each page consists of Blocks
+
+    Flow
+        when user presses key
+            process key press
+            'j' => move cursor down
+            'k' => move cursor up
+            'enter' => {
+                open page in browser
+                add block to database
+                mark block as visited
+            }
+            's' => {
+                add block to database
+                mark block as not visited
+            }
+            pass state to display function
+                displays the stories
+
+    Refactor steps:
+        Create a new struct that stores the current state of the app
+        handle input from the main function
+            
+    });
+*/
+
 struct Block {
     data: String,
     url: String,
@@ -18,87 +96,74 @@ impl Block {
     }
 }
 
-pub struct BlockContainer {
-    init_x: u16,
-    init_y: u16,
+pub struct ViewConfig {
     cursor_x: u16,
     cursor_y: u16,
-    current_block: usize,
+    current_block_index: usize,
     blocks: Vec<Block>,
     stdout: termion::raw::RawTerminal<std::io::Stdout>,
     dimensions: (u16, u16),
-    current_page_index: usize,
+    start_block_index: usize,
     page_capacity: usize,
 }
 
-impl BlockContainer {
-    pub fn new(init_x: u16, init_y: u16) -> BlockContainer {
-        BlockContainer {
-            init_x,
-            init_y,
+impl ViewConfig {
+    pub fn new(init_x: u16, init_y: u16) -> ViewConfig {
+        ViewConfig {
             cursor_x: init_x,
             cursor_y: init_y,
-            current_block: 0,
+            current_block_index: 0,
             blocks: Vec::new(),
             stdout: stdout().into_raw_mode().unwrap(),
             dimensions: termion::terminal_size().unwrap(),
-            current_page_index: 0,
+            start_block_index: 0,
             page_capacity: 0,
         }
-    }
-
-    fn clear_tty(&mut self) {
-        writeln!(
-            self.stdout,
-            "{clear}{goto}",
-            clear = clear::All,
-            goto = cursor::Goto(self.init_x, self.init_y)
-        )
-        .unwrap();
-        self.cursor_x = self.init_x;
-        self.cursor_y = self.init_y;
-        self.bookkeeping();
-    }
-
-    fn bookkeeping(&mut self) {
-        self.dimensions = termion::terminal_size().unwrap();
-
-        let height = self.dimensions.1 - 5;
-        self.page_capacity = height as usize / 3;
     }
 
     pub fn init_display(&mut self, stories: Vec<Story>) {
         for story in stories {
             self.blocks.push(self.get_block(&story));
         }
-        self.display_page(self.current_page_index);
+        self.display_page(self.start_block_index);
         self.handle_input();
     }
 
-    pub fn display_page(&mut self, page: usize) {
-        self.clear_tty();
-
+    fn clear(&mut self) {
         writeln!(
             self.stdout,
-            "{frame}{bold}{color}{title}",
-            frame = style::Framed,
-            bold = style::Bold,
-            color = color::Fg(color::Rgb(255, 132, 2)),
-            title = "╔══════════════╗\n\r   HACKERNEWS \n\r╚══════════════╝"
+            "{clear}{goto}",
+            clear = clear::All,
+            goto = cursor::Goto(1, 1)
         )
         .unwrap();
+        self.cursor_x = 1;
+        self.cursor_y = 1;
 
-        self.cursor_y += 4; // padding after title
+        self.update_dimensions();
+    }
 
-        self.current_page_index = page * self.page_capacity;
-        self.current_block = self.current_page_index; // is modified by cursor movements
+    fn update_dimensions(&mut self) {
+        self.dimensions = termion::terminal_size().unwrap();
+
+        let height = self.dimensions.1 - 5;
+        self.page_capacity = height as usize / 3;
+    }
+
+    fn display_page(&mut self, page: usize) {
+        self.clear();
+
+        self.print_title();
+
+        self.start_block_index = page * self.page_capacity;
+        self.current_block_index = self.start_block_index; // is modified by cursor movements
 
         let mut cap = self.blocks.len();
-        if self.current_page_index + self.page_capacity < self.blocks.len() {
-            cap = self.current_page_index + self.page_capacity;
+        if self.start_block_index + self.page_capacity < self.blocks.len() {
+            cap = self.start_block_index + self.page_capacity;
         }
 
-        for i in self.current_page_index..cap {
+        for i in self.start_block_index..cap {
             self.move_cursor_to(self.cursor_x, self.cursor_y);
             writeln!(self.stdout, "{}", self.blocks[i].data).unwrap();
             self.cursor_y += self.blocks[i].height;
@@ -107,25 +172,27 @@ impl BlockContainer {
         self.stdout.flush().unwrap();
     }
 
-    pub fn handle_input(&mut self) {
-        self.move_cursor_to(self.init_x, self.init_y + 4);
+    fn handle_input(&mut self) {
+        self.move_cursor_to(1, 1 + 4);
+
         let stdin = stdin();
         let mut curr_dim;
+
         for c in stdin.keys() {
             curr_dim = termion::terminal_size().unwrap();
 
             if curr_dim != self.dimensions {
-                self.bookkeeping();
+                self.update_dimensions();
                 self.display_page(0);
                 self.move_cursor_to(
-                    self.init_x,
-                    self.init_y + 4
+                    1,
+                    1 + 4
                 ); 
             }
 
             match c.unwrap() {
                 Key::Char('q') => {
-                    self.clear_tty();
+                    self.clear();
                     break;
                 }
                 Key::Char('j') | Key::Down => {
@@ -134,9 +201,13 @@ impl BlockContainer {
                 Key::Char('k') | Key::Up => {
                     self.move_cursor_up();
                 }
+                Key::Char('s') => {
+                    // save story
+
+                }
                 Key::Char('\n') => {
                     Command::new("open")
-                        .arg(self.blocks[self.current_block].url.as_str())
+                        .arg(self.blocks[self.current_block_index].url.as_str())
                         .output()
                         .expect("Something went wrong with opening the page");
                 }
@@ -160,41 +231,41 @@ impl BlockContainer {
     }
 
     fn move_cursor_up(&mut self) {
-        if self.blocks.len() == 0 || self.current_block == 0 {
+        if self.blocks.len() == 0 || self.current_block_index == 0 {
             return;
         }
-        if self.current_block == self.current_page_index {
-            self.display_page(self.current_page_index / self.page_capacity - 1);
+        if self.current_block_index == self.start_block_index {
+            self.display_page(self.start_block_index / self.page_capacity - 1);
             self.move_cursor_to(
-                self.init_x,
-                self.init_y + 4
+                1,
+                1 + 4
             ); 
         } else {
             self.move_cursor_to(
                 self.cursor_x,
-                self.cursor_y - self.blocks[self.current_block].height,
+                self.cursor_y - self.blocks[self.current_block_index].height,
             );
-            self.current_block -= 1;
+            self.current_block_index -= 1;
         }
     }
 
     fn move_cursor_down(&mut self) {
-        if self.blocks.len() == 0 || self.current_block >= self.blocks.len() - 1 {
+        if self.blocks.len() == 0 || self.current_block_index >= self.blocks.len() - 1 {
             return;
         }
 
-        if self.current_block == self.current_page_index + self.page_capacity - 1 {
-            self.display_page(self.current_page_index / self.page_capacity + 1);
+        if self.current_block_index == self.start_block_index + self.page_capacity - 1 {
+            self.display_page(self.start_block_index / self.page_capacity + 1);
             self.move_cursor_to(
-                self.init_x,
-                self.init_y + 4
+                1,
+                1 + 4
             ); 
         } else {
             self.move_cursor_to(
                 self.cursor_x,
-                self.cursor_y + self.blocks[self.current_block].height,
+                self.cursor_y + self.blocks[self.current_block_index].height,
             );
-            self.current_block += 1;
+            self.current_block_index += 1;
         }
     }
 
@@ -219,5 +290,19 @@ impl BlockContainer {
         );
         let url = story.data.url.clone();
         Block::new(output, url, 3)
+    }
+
+    fn print_title(&mut self) {
+        writeln!(
+            self.stdout,
+            "{frame}{bold}{color}{title}",
+            frame = style::Framed,
+            bold = style::Bold,
+            color = color::Fg(color::Rgb(255, 132, 2)),
+            title = "╔══════════════╗\n\r   HACKERNEWS \n\r╚══════════════╝"
+        )
+        .unwrap(); 
+
+        self.cursor_y += 4; // padding after title
     }
 }
