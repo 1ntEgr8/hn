@@ -33,7 +33,7 @@ pub fn display(stdout: &mut RawTerminal, app: &App) {
     for i in start_index..cap {
         out.push_str(get_story_string(&app.stories[i]).as_str());
     }
-
+    out.push_str(get_status_bar(&app).as_str());
     writeln!(stdout, "{}", out).unwrap();
     writeln!(
         stdout,
@@ -115,4 +115,19 @@ fn get_story_string(story: &Story) -> String {
             story.sub.age
         )
     )
+}
+
+fn get_status_bar(app: &App) -> String {
+    let term_dimensions = termion::terminal_size().unwrap();
+    let mut out = format!(
+        "{white}[{num}/{denom}] | Last refresh: xxx | 'q' to exit | 's' to save",
+        white = color::Fg(color::White),
+        num = app.current_story_index + 1,
+        denom = app.stories.len(),
+    );
+    for _ in out.len()-1..term_dimensions.0 as usize {
+        out.push(' ');
+    }
+    out.push_str(format!("{reset}", reset = style::Reset).as_str());
+    out
 }
