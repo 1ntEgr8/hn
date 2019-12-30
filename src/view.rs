@@ -118,16 +118,12 @@ fn get_story_string(story: &Story) -> String {
 }
 
 fn get_status_bar(app: &App) -> String {
-    let term_dimensions = termion::terminal_size().unwrap();
-    let mut out = format!(
-        "{white}[{num}/{denom}] | Last refresh: xxx | 'q' to exit | 's' to save",
+    format!(
+        "{white}[{num}/{denom}] | Last refresh: {time} | 'q' to exit | 's' to save{reset}",
         white = color::Fg(color::White),
+        time = app.last_refresh.format("%a %b %e %T %Y"),
         num = app.current_story_index + 1,
         denom = app.stories.len(),
-    );
-    for _ in out.len()-1..term_dimensions.0 as usize {
-        out.push(' ');
-    }
-    out.push_str(format!("{reset}", reset = style::Reset).as_str());
-    out
+        reset = style::Reset
+    )
 }
