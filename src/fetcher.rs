@@ -2,14 +2,14 @@ use std::error::Error;
 use select::document::Document;
 use select::predicate::{Attr, Name};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TitleData {
     pub rank: i32,
     pub title: String,
     pub url: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SubtextData {
     pub score: String,
     pub by: String,
