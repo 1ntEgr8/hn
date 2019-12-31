@@ -7,7 +7,7 @@ pub struct App {
     pub current_story_index: usize,
     pub stories: Vec<Story>,
     pub last_refresh: DateTime<Utc>,
-    pub connection: Connection
+    pub conn: Connection
 }
 
 impl App {
@@ -34,7 +34,7 @@ impl App {
             current_story_index: 0,
             stories,
             last_refresh,
-            connection: conn
+            conn
         }
     }
 }

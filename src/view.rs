@@ -1,5 +1,6 @@
 use crate::fetcher::Story;
 use crate::App;
+use crate::save;
 use std::io::{stdin, Write};
 use std::process::Command;
 use termion::event::Key;
@@ -61,8 +62,13 @@ pub fn process_key_press(stdout: &mut RawTerminal, app: &mut App) {
                     app.current_story_index -= 1;
                 }
             }
-            Key::Char('s') => {}
+            Key::Char('s') => {
+                app.stories[app.current_story_index].is_saved = true;
+                save::add_story(&app.conn, &app.stories[app.current_story_index]).unwrap(); 
+            }
             Key::Char('\n') => {
+                app.stories[app.current_story_index].is_visited = true;
+                save::add_story(&app.conn, &app.stories[app.current_story_index]).unwrap();
                 Command::new("open")
                         .arg(app.stories[app.current_story_index].data.url.as_str())
                         .output()
@@ -98,9 +104,10 @@ fn print_title(stdout: &mut RawTerminal) {
 
 fn get_story_string(story: &Story) -> String {
     format!(
-        "{bold}{blue}{rank}. {yellow}{data}\n\r   {sub}\n\r\n\r",
+        "{bold}{blue} {status} {rank}. {yellow}{data}\n\r       {sub}\n\r\n\r",
         bold = style::Bold,
         blue = color::Fg(color::Blue),
+        status = if story.is_visited { "✅" } else if story.is_saved { "💾" } else { "  " },
         rank = story.data.rank,
         yellow = color::Fg(color::Yellow),
         data = story.data.title,
