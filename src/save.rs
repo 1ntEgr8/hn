@@ -85,12 +85,11 @@ pub fn get_saved_stories(conn: &Connection) -> Vec<StorySave> {
     )
 }
 
-// a story is "archived" if it is both saved and visited
-pub fn get_archived_stories(conn: &Connection) -> Vec<StorySave> {
-    query(conn, "SELECT title, url, is_visited, is_saved FROM stories WHERE is_visited = 1 AND is_saved = 1")
+pub fn get_all_interacted_stories(conn: &Connection) -> Vec<StorySave> {
+    query(conn,"SELECT title, url, is_visited, is_saved FROM stories")
 }
 
-pub fn get_saved_stories_exclusive(conn: &Connection, story: &Story) -> Vec<StorySave> {
+pub fn get_saved_stories_exclusive(conn: &Connection) -> Vec<StorySave> {
     query(conn,"SELECT title, url, is_visited, is_saved FROM stories WHERE is_visited = 0 AND is_saved = 1")
 }
 
@@ -102,6 +101,13 @@ pub fn get_story(conn: &Connection, story: &Story) -> StorySave {
         is_visited: story.is_visited,
         is_saved: story.is_saved,
     }
+}
+
+pub fn story_save_to_stories(stories_save: Vec<StorySave>) -> Vec<Story> {
+    let stories = stories_save.iter().map(|story_save| {
+        Story::from_story_save(story_save)
+    }).collect();
+    stories
 }
 
 fn establish_connection() -> Connection {

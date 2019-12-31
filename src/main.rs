@@ -8,6 +8,15 @@ use std::io::stdout;
 use termion::raw::IntoRawMode;
 use view::*;
 
+/*
+    write a function that converts vec<story_save> to vec<story>
+
+    when press 'l' or 'h'
+        change stories to the converted list
+        display that info
+    change the function for get_story
+*/
+
 type RawTerminal = termion::raw::RawTerminal<std::io::Stdout>;
 
 fn main() {

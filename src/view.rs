@@ -1,6 +1,6 @@
 use crate::fetcher::Story;
-use crate::App;
 use crate::save;
+use crate::App;
 use std::io::{stdin, Write};
 use std::process::Command;
 use termion::event::Key;
@@ -12,7 +12,11 @@ type RawTerminal = termion::raw::RawTerminal<std::io::Stdout>;
 pub fn display(stdout: &mut RawTerminal, app: &App) {
     clear(stdout);
 
-    print_title(stdout); // printing "hackernews"
+    if app.is_main_screen {
+        print_title(stdout); // printing "hackernews"
+    } else {
+        print_header(stdout, app);
+    }
 
     let term_dimensions = termion::terminal_size().unwrap();
     let height = term_dimensions.1 - 6; // 5 for title "hackernews" + padding; 1 for status bar
@@ -35,6 +39,7 @@ pub fn display(stdout: &mut RawTerminal, app: &App) {
         out.push_str(get_story_string(&app.stories[i]).as_str());
     }
     out.push_str(get_status_bar(&app).as_str());
+    out.push_str(get_message_bar(&app).as_str());
     writeln!(stdout, "{}", out).unwrap();
     writeln!(
         stdout,
@@ -62,20 +67,77 @@ pub fn process_key_press(stdout: &mut RawTerminal, app: &mut App) {
                     app.current_story_index -= 1;
                 }
             }
+            Key::Char('l') => {
+                // show reading list
+                app.header = String::from("Reading List");
+                if app.is_main_screen {
+                    app.is_main_screen = false;
+                    let stories_save = save::get_saved_stories_exclusive(&app.conn);
+                    let stories = save::story_save_to_stories(stories_save);
+                    app.stories = stories;
+                }
+            }
+            Key::Char('h') => {
+                // show history
+                app.header = String::from("History");
+                if app.is_main_screen {
+                    app.is_main_screen = false;
+                    app.message = String::from("All stories you've interacted with");
+                    let stories_save = save::get_all_interacted_stories(&app.conn);
+                    let stories = save::story_save_to_stories(stories_save);
+                    app.stories = stories;
+                }
+            }
+            Key::Char('f') => {
+                // show all saved stories
+                app.header = String::from("Saved List");
+                if app.is_main_screen {
+                    app.is_main_screen = false;
+                    app.message = String::from("All stories you've saved");
+                    let stories_save = save::get_saved_stories(&app.conn);
+                    let stories = save::story_save_to_stories(stories_save);
+                    app.stories = stories;
+                }
+            }
+            Key::Char('v') => {
+                // show all visited stories
+                app.header = String::from("Visited List");
+                if app.is_main_screen {
+                    app.is_main_screen = false;
+                    app.message = String::from("All stories you've visited");
+                    let stories_save = save::get_visited_stories(&app.conn);
+                    let stories = save::story_save_to_stories(stories_save);
+                    app.stories = stories;
+                }
+            }
+            Key::Char('b') => {
+                if !app.is_main_screen {
+                    app.message = String::from("Back to home");
+                    app.is_main_screen = true;
+                    app.refresh();
+                }
+            }
             Key::Char('s') => {
-                app.stories[app.current_story_index].is_saved = true;
-                save::add_story(&app.conn, &app.stories[app.current_story_index]).unwrap(); 
+                if app.is_main_screen {
+                    app.stories[app.current_story_index].is_saved = true;
+                    app.message = String::from("Saved!");
+                    save::add_story(&app.conn, &app.stories[app.current_story_index]).unwrap();
+                }
             }
             Key::Char('r') => {
-                app.refresh();
+                if app.is_main_screen {
+                    app.message = String::from("Refreshed");
+                    app.refresh();
+                }
             }
             Key::Char('\n') => {
                 app.stories[app.current_story_index].is_visited = true;
+                app.message = String::from("Visited");
                 save::add_story(&app.conn, &app.stories[app.current_story_index]).unwrap();
                 Command::new("open")
-                        .arg(app.stories[app.current_story_index].data.url.as_str())
-                        .output()
-                        .expect("Something went wrong with opening the page");
+                    .arg(app.stories[app.current_story_index].data.url.as_str())
+                    .output()
+                    .expect("Something went wrong with opening the page");
             }
             _ => continue,
         }
@@ -105,35 +167,77 @@ fn print_title(stdout: &mut RawTerminal) {
     .unwrap();
 }
 
-fn get_story_string(story: &Story) -> String {
-    format!(
-        "{bold}{blue} {status} {rank}. {yellow}{data}\n\r       {sub}\n\r\n\r",
+fn print_header(stdout: &mut RawTerminal, app: &App) {
+    writeln!(
+        stdout,
+        "{frame}{bold}{color}{title}",
+        frame = style::Framed,
         bold = style::Bold,
-        blue = color::Fg(color::Blue),
-        status = if story.is_visited { "✅" } else if story.is_saved { "💾" } else { "  " },
-        rank = story.data.rank,
-        yellow = color::Fg(color::Yellow),
-        data = story.data.title,
-        sub = format!(
-            "{}{} {}| {}by {} {}| {}",
-            color::Fg(color::Rgb(0, 224, 157)),
-            story.sub.score,
-            color::Fg(color::LightBlack),
-            color::Fg(color::Rgb(183, 183, 183)),
-            story.sub.by,
-            color::Fg(color::LightBlack),
-            story.sub.age
-        )
+        color = color::Fg(color::Rgb(255, 132, 2)),
+        title = format!("\n\r( ̲̅:̲̅:̲̅:̲̅[̲̅ ̲̅]̲̅:̲̅:̲̅:̲̅ ) {} ( ̲̅:̲̅:̲̅:̲̅[̲̅ ̲̅]̲̅:̲̅:̲̅:̲̅ )\n\r\n\r", app.header)
     )
+    .unwrap(); 
+}
+
+fn get_story_string(story: &Story) -> String {
+    if story.data.rank == 0 {
+        format!(
+            " {status} {yellow}{data}\n\r\n\r\n\r",
+            status = if story.is_visited {
+                "✅"
+            } else if story.is_saved {
+                "💾"
+            } else {
+                "  "
+            },
+            yellow = color::Fg(color::Yellow),
+            data = story.data.title,
+        )
+    } else {
+        format!(
+            "{bold}{blue} {status} {rank}. {yellow}{data}\n\r       {sub}\n\r\n\r",
+            bold = style::Bold,
+            blue = color::Fg(color::Blue),
+            status = if story.is_visited {
+                "✅"
+            } else if story.is_saved {
+                "💾"
+            } else {
+                "  "
+            },
+            rank = story.data.rank,
+            yellow = color::Fg(color::Yellow),
+            data = story.data.title,
+            sub = format!(
+                "{}{} {}| {}by {} {}| {}",
+                color::Fg(color::Rgb(0, 224, 157)),
+                story.sub.score,
+                color::Fg(color::LightBlack),
+                color::Fg(color::Rgb(183, 183, 183)),
+                story.sub.by,
+                color::Fg(color::LightBlack),
+                story.sub.age
+            )
+        )
+    }
 }
 
 fn get_status_bar(app: &App) -> String {
     format!(
-        "{white}[{num}/{denom}] | Last refresh: {time} | 'q' to exit {reset}",
+        "{white}[{num}/{denom}] | Last refresh: {time} | 'q' to exit {reset}\n\r\n\r",
         white = color::Fg(color::White),
         time = app.last_refresh.format("%a %b %e %T %Y"),
         num = app.current_story_index + 1,
         denom = app.stories.len(),
         reset = style::Reset
     )
+}
+
+fn get_message_bar(app: &App) -> String {
+    format!(
+        "{red}[ {msg} ]{reset}",
+        red = color::Fg(color::Red),
+        msg = app.message, 
+        reset = style::Reset
+    ) 
 }

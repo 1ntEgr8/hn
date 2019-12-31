@@ -7,7 +7,10 @@ pub struct App {
     pub current_story_index: usize,
     pub stories: Vec<Story>,
     pub last_refresh: DateTime<Utc>,
-    pub conn: Connection
+    pub conn: Connection,
+    pub is_main_screen: bool,
+    pub header: String,
+    pub message: String,
 }
 
 impl App {
@@ -34,7 +37,10 @@ impl App {
             current_story_index: 0,
             stories,
             last_refresh,
-            conn
+            conn,
+            is_main_screen: true,
+            header: String::new(),
+            message: String::from("Howdy!")
         }
     }
 

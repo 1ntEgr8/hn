@@ -1,6 +1,7 @@
 use std::error::Error;
 use select::document::Document;
 use select::predicate::{Attr, Name};
+use crate::save::StorySave;
 
 #[derive(Debug, Clone)]
 pub struct TitleData {
@@ -22,6 +23,25 @@ pub struct Story {
     pub sub: SubtextData,
     pub is_visited: bool,
     pub is_saved: bool,
+}
+
+impl Story {
+    pub fn from_story_save(story_save: &StorySave) -> Story {
+        Story {
+            data: TitleData {
+                rank: 0,
+                title: story_save.title.clone(),
+                url: story_save.url.clone()
+            },
+            sub: SubtextData {
+                score: String::new(),
+                by: String::new(),
+                age: String::new()
+            },
+            is_saved: story_save.is_saved,
+            is_visited: story_save.is_visited
+        }
+    }
 }
 
 pub struct HnFetcher {
