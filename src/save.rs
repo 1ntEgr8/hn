@@ -45,7 +45,6 @@ pub fn does_exist(conn: &Connection, story: &Story) -> bool {
 }
 
 pub fn add_story(conn: &Connection, story: &Story) -> Result<usize> {
-    // add code that updates an entry if it exists
     if !does_exist(conn, story) {
         conn.execute(
             "INSERT INTO stories (title, url, is_visited, is_saved)
@@ -58,7 +57,17 @@ pub fn add_story(conn: &Connection, story: &Story) -> Result<usize> {
             ],
         )
     } else {
-        Ok(0)
+        conn.execute(
+            "UPDATE stories
+        SET title = (?1), url = (?2), is_visited = (?3), is_saved = (?4)
+        WHERE title = (?1) AND url = (?2)",
+            params![
+                &story.data.title.replace("\"", "\"\""),
+                &story.data.url,
+                if story.is_visited { 1 } else { 0 },
+                if story.is_saved { 1 } else { 0 },
+            ],
+        )
     }
 }
 
