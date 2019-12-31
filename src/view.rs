@@ -119,7 +119,7 @@ fn get_story_string(story: &Story) -> String {
 
 fn get_status_bar(app: &App) -> String {
     format!(
-        "{white}[{num}/{denom}] | Last refresh: {time} | 'q' to exit | 's' to save{reset}",
+        "{white}[{num}/{denom}] | Last refresh: {time} | 'q' to exit | 's' to save for later{reset}",
         white = color::Fg(color::White),
         time = app.last_refresh.format("%a %b %e %T %Y"),
         num = app.current_story_index + 1,
