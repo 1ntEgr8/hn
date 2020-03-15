@@ -1,4 +1,6 @@
 use crate::fetcher::Story;
+use std::path::Path;
+use std::fs;
 use rusqlite::{params, Connection, Result, Statement, NO_PARAMS};
 
 #[derive(Debug)]
@@ -111,7 +113,10 @@ pub fn story_save_to_stories(stories_save: Vec<StorySave>) -> Vec<Story> {
 }
 
 fn establish_connection() -> Connection {
-    Connection::open("hn_history.db").unwrap()
+    if !Path::new("~/.hn_data").is_dir() {
+        fs::create_dir("~/.hn_data").unwrap(); 
+    }
+    Connection::open(".hn_data/hn_history.db").unwrap()
 }
 
 fn query(conn: &Connection, command: &str) -> Vec<StorySave> {
